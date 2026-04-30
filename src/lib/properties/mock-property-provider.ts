@@ -16,6 +16,7 @@ class MockPropertyProvider implements PropertyProvider {
     return mockProperties.filter((property) => {
       return (
         property.id.toLowerCase().includes(normalized) ||
+        property.code.toLowerCase().includes(normalized) ||
         property.title.toLowerCase().includes(normalized) ||
         property.address.toLowerCase().includes(normalized) ||
         property.neighborhood.toLowerCase().includes(normalized)

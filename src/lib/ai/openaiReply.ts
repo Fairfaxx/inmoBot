@@ -21,6 +21,7 @@ function propertyContext(property: Property | null): string {
   if (!property) return "Sin propiedad asociada.";
   return JSON.stringify(
     {
+      code: property.code,
       title: property.title,
       address: property.address,
       neighborhood: property.neighborhood,

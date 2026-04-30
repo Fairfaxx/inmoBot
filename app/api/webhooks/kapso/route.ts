@@ -93,6 +93,10 @@ export async function POST(req: Request): Promise<Response> {
         leadName: `Lead ${phone}`,
       });
 
+    if (conversation.whatsappPhoneNumberId !== phoneNumberId) {
+      conversationStore.update(conversation.id, { whatsappPhoneNumberId: phoneNumberId });
+    }
+
     conversationStore.addMessage({
       conversationId: conversation.id,
       sender: "lead",
@@ -100,8 +104,10 @@ export async function POST(req: Request): Promise<Response> {
     });
 
     const existingProperty = await getPropertyContext(conversation.propertyId);
-    const resolvedFromMessage = existingProperty ? null : await resolvePropertyFromMessage(message);
-    const property = existingProperty || resolvedFromMessage;
+    const resolution = existingProperty
+      ? { property: existingProperty, options: [], reason: "exact" as const }
+      : await resolvePropertyFromMessage(message);
+    const property = resolution.property;
 
     if (property && !conversation.propertyId) {
       conversationStore.update(conversation.id, { propertyId: property.id });
@@ -111,7 +117,8 @@ export async function POST(req: Request): Promise<Response> {
       conversation: conversationStore.getById(conversation.id)!,
       message,
       property,
-      matchedByMessage: Boolean(resolvedFromMessage),
+      propertyOptions: resolution.options,
+      matchedByMessage: resolution.reason === "exact" && Boolean(property),
     });
 
     conversationStore.setStatus(conversation.id, reply.status);

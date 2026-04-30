@@ -2,6 +2,7 @@ export type PropertyStatus = "available" | "reserved" | "sold";
 
 export type Property = {
   id: string;
+  code: string;
   title: string;
   address: string;
   neighborhood: string;
@@ -38,6 +39,7 @@ export type Conversation = {
   clientId: string;
   leadName: string;
   leadPhone: string;
+  whatsappPhoneNumberId?: string;
   propertyId?: string;
   status: ConversationStatus;
   assignedAgentId?: string;

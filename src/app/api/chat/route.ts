@@ -26,9 +26,11 @@ export async function POST(req: Request): Promise<Response> {
     return Response.json({ error: "conversation not found" }, { status: 404 });
   }
 
-  const resolvedFromMessage = await resolvePropertyFromMessage(body.content);
-  const property =
-    (await getPropertyContext(conversation.propertyId || body.propertyId)) || resolvedFromMessage;
+  const existingProperty = await getPropertyContext(conversation.propertyId || body.propertyId);
+  const resolution = existingProperty
+    ? { property: existingProperty, options: [], reason: "exact" as const }
+    : await resolvePropertyFromMessage(body.content);
+  const property = resolution.property;
 
   if (property && !conversation.propertyId) {
     conversationStore.update(conversation.id, { propertyId: property.id });
@@ -38,7 +40,8 @@ export async function POST(req: Request): Promise<Response> {
     conversation: conversationStore.getById(conversation.id)!,
     message: body.content,
     property,
-    matchedByMessage: Boolean(resolvedFromMessage),
+    propertyOptions: resolution.options,
+    matchedByMessage: resolution.reason === "exact" && Boolean(property),
   });
 
   conversationStore.setStatus(conversation.id, reply.status);

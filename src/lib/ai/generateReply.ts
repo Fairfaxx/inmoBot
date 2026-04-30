@@ -34,6 +34,7 @@ export async function generateReply(input: {
   conversation: Conversation;
   message: string;
   property: Property | null;
+  propertyOptions?: Property[];
   matchedByMessage: boolean;
 }): Promise<ReplyResult> {
   const fallback = async (): Promise<ReplyResult> => {
@@ -46,6 +47,19 @@ export async function generateReply(input: {
     const wantsAvailability = containsAny(lower, ["disponible", "disponibilidad", "estado"]);
 
     if (!input.property) {
+      if (input.propertyOptions && input.propertyOptions.length > 0) {
+        const options = input.propertyOptions
+          .slice(0, 3)
+          .map(
+            (property) =>
+              `- ${property.code}: ${property.title} (${property.address}) - USD ${property.priceUsd.toLocaleString("en-US")}`,
+          )
+          .join("\n");
+        return {
+          content: `Encontré varias opciones:\n${options}\n¿Cuál te interesa?`,
+          status: "bot_active",
+        };
+      }
       return {
         content: "¿Me pasás la dirección, link o código de la propiedad que viste?",
         status: "bot_active",
@@ -158,7 +172,7 @@ export async function generateReply(input: {
     };
   }
 
-  if (process.env.OPENAI_API_KEY) {
+  if (process.env.OPENAI_API_KEY && input.property) {
     try {
       const openAIText = await generateOpenAIReply({
         message: text,
