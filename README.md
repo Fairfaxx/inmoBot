@@ -1,36 +1,102 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MVP - Bot IA para Inmobiliarias (Next.js)
 
-## Getting Started
+Demo local para validar una idea de producto: un bot que responde leads, usa contexto de propiedades y permite handoff a vendedor desde dashboard.
 
-First, run the development server:
+## Stack
+
+- Next.js (App Router)
+- TypeScript
+- Tailwind CSS
+- Route Handlers de Next.js
+- Datos mock/in-memory (sin DB real)
+
+## Qué valida este MVP
+
+- Flujo end-to-end de conversación lead -> bot -> dashboard.
+- Asociación de propiedad por selección previa o match por texto.
+- Respuestas automáticas con datos mock reales (precio, ambientes, m2, expensas, balcón, estado).
+- Detección de casos para humano (`needs_human`) cuando:
+  - el lead quiere visitar
+  - falta información clave
+- Toma de control manual desde dashboard (`human_active`).
+- Métricas básicas de operación comercial.
+
+## Estructura principal
+
+- `app/` rutas UI y API (App Router)
+- `src/components/` UI reusable (`ChatSimulator`, `ConversationList`, `ConversationDetail`, `MetricsCards`)
+- `src/lib/` lógica por dominio
+  - `ai/` (`generateReply`, `mockAI`)
+  - `properties/` (`PropertyProvider`, resolver)
+  - `conversations/` store in-memory
+  - `metrics/` cálculo de métricas
+- `src/data/` mocks de propiedades y conversaciones
+- `src/types/` tipos de dominio
+
+## Cómo correr
+
+1. Instalar dependencias:
+
+```bash
+npm install
+```
+
+2. Levantar entorno local:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+3. Abrir:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Home / simulador: [http://localhost:3000](http://localhost:3000)
+- Dashboard: [http://localhost:3000/dashboard](http://localhost:3000/dashboard)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Endpoints incluidos
 
-## Learn More
+- `POST /api/chat`
+  - recibe mensaje del lead
+  - crea/actualiza conversación
+  - busca contexto de propiedad
+  - genera respuesta bot
+- `GET /api/conversations`
+  - devuelve conversaciones + métricas + propiedades
+- `POST /api/conversations/:id/take-control`
+  - pasa conversación a `human_active`
+- `POST /api/conversations/:id/messages`
+  - agrega mensaje de vendedor
 
-To learn more about Next.js, take a look at the following resources:
+## Reglas del bot (MVP)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Si detecta propiedad, usa su contexto.
+- Si pregunta por datos conocidos, responde desde mock.
+- Si falta dato preguntado, responde:
+  - `Te lo averiguo y te confirmo en unos minutos 👍`
+  - y marca `needs_human`.
+- Si pide visita/coordinar, marca `needs_human`.
+- Si propiedad está `sold` o `reserved`, ofrece similares.
+- Si no identifica propiedad, pide dirección/link/código.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## IA hoy y evolución
 
-## Deploy on Vercel
+- Existe abstracción para motor de IA en `src/lib/ai/generateReply.ts`.
+- Si no hay `OPENAI_API_KEY` o `ANTHROPIC_API_KEY`, se mantiene flujo mock/determinístico.
+- El diseño permite enchufar luego OpenAI/Claude sin romper API ni UI.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Qué falta para producción
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Persistencia real (Supabase/Postgres).
+- Integración real WhatsApp API.
+- Integración real Tokko (nuevo `PropertyProvider`).
+- Auth y roles.
+- Multi-tenant real.
+- Observabilidad, auditoría y retries.
+- Tests automáticos (unit + e2e).
+
+## Próximos pasos sugeridos
+
+1. Reemplazar `ConversationStore` in-memory por repositorio Postgres.
+2. Implementar `TokkoPropertyProvider` y conmutación por env.
+3. Conectar webhook de WhatsApp (entrada/salida).
+4. Enchufar proveedor IA real con prompt de negocio + guardrails.
+5. Agregar autenticación y separación por inmobiliaria.

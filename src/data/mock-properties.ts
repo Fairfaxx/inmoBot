@@ -1,0 +1,45 @@
+import type { Property } from "@/types";
+
+export const mockProperties: Property[] = [
+  {
+    id: "prop-101",
+    title: "Departamento 3 ambientes con balcón",
+    address: "Av. Santa Fe 3250",
+    neighborhood: "Palermo",
+    priceUsd: 185000,
+    rooms: 3,
+    surfaceM2: 78,
+    balconyM2: 8,
+    expensesArs: 145000,
+    description:
+      "Luminoso, reciclado, cerca de subte y polo gastronómico.",
+    status: "available",
+    features: ["Balcón", "Apto profesional", "Cocina integrada"],
+  },
+  {
+    id: "prop-102",
+    title: "PH 4 ambientes con patio",
+    address: "José Bonifacio 2100",
+    neighborhood: "Caballito",
+    priceUsd: 210000,
+    rooms: 4,
+    surfaceM2: 112,
+    expensesArs: 0,
+    description: "Entrada independiente, patio y quincho pequeño.",
+    status: "reserved",
+    features: ["Patio", "Terraza", "Sin expensas"],
+  },
+  {
+    id: "prop-103",
+    title: "Monoambiente moderno",
+    address: "Amenábar 1450",
+    neighborhood: "Belgrano",
+    priceUsd: 98000,
+    rooms: 1,
+    surfaceM2: 36,
+    balconyM2: 3,
+    description: "Ideal inversión, edificio con amenities.",
+    status: "sold",
+    features: ["SUM", "Laundry", "Balcón"],
+  },
+];
