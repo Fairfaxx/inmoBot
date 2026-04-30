@@ -18,9 +18,17 @@ export function DashboardClient({ initialData }: { initialData: DashboardPayload
   const [selectedId, setSelectedId] = useState<string | undefined>();
 
   async function refresh() {
-    const res = await fetch("/api/conversations");
-    const payload = (await res.json()) as DashboardPayload;
-    setData(payload);
+    try {
+      const res = await fetch("/api/conversations", { cache: "no-store" });
+      if (!res.ok) {
+        console.error("[dashboard] refresh failed", { status: res.status });
+        return;
+      }
+      const payload = (await res.json()) as DashboardPayload;
+      setData(payload);
+    } catch (error) {
+      console.error("[dashboard] refresh network error", error);
+    }
   }
 
   useEffect(() => {
