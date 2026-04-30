@@ -5,7 +5,7 @@ import { ConversationList } from "@/components/ConversationList";
 import { MetricsCards } from "@/components/MetricsCards";
 import type { Metrics } from "@/lib/metrics/getMetrics";
 import type { Conversation, Property } from "@/types";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type DashboardPayload = {
   conversations: Conversation[];
@@ -21,14 +21,19 @@ export function DashboardClient({ initialData }: { initialData: DashboardPayload
     const res = await fetch("/api/conversations");
     const payload = (await res.json()) as DashboardPayload;
     setData(payload);
-    if (!selectedId && payload.conversations[0]) {
-      setSelectedId(payload.conversations[0].id);
-    }
   }
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      void refresh();
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const effectiveSelectedId = selectedId ?? data.conversations[0]?.id;
   const selectedConversation = useMemo(
-    () => data?.conversations.find((c) => c.id === selectedId) ?? null,
-    [data, selectedId],
+    () => data?.conversations.find((c) => c.id === effectiveSelectedId) ?? null,
+    [data, effectiveSelectedId],
   );
   const selectedProperty = selectedConversation?.propertyId
     ? (data?.propertiesById[selectedConversation.propertyId] ?? null)
@@ -40,7 +45,7 @@ export function DashboardClient({ initialData }: { initialData: DashboardPayload
       <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
         <ConversationList
           conversations={data.conversations}
-          selectedId={selectedId}
+          selectedId={effectiveSelectedId}
           onSelect={setSelectedId}
         />
         <ConversationDetail

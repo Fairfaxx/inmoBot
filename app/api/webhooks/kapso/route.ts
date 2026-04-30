@@ -40,10 +40,23 @@ function extractPhone(body: KapsoWebhook): string | null {
 function extractMessage(body: KapsoWebhook): string | null {
   return (
     readString(getPath(body, ["data", "message", "content"])) ||
+    readString(getPath(body, ["data", "text", "body"])) ||
+    readString(getPath(body, ["data", "message", "text", "body"])) ||
     readString(getPath(body, ["data", "message", "text"])) ||
     readString(getPath(body, ["data", "content"])) ||
     readString(getPath(body, ["message", "content"])) ||
+    readString(getPath(body, ["message", "text", "body"])) ||
     readString(getPath(body, ["message", "text"])) ||
+    null
+  );
+}
+
+function extractPhoneNumberId(body: KapsoWebhook): string | null {
+  return (
+    readString(getPath(body, ["phone_number_id"])) ||
+    readString(getPath(body, ["conversation", "phone_number_id"])) ||
+    readString(getPath(body, ["data", "phone_number_id"])) ||
+    readString(getPath(body, ["data", "conversation", "phone_number_id"])) ||
     null
   );
 }
@@ -53,20 +66,25 @@ export async function POST(req: Request): Promise<Response> {
     const body = (await req.json()) as KapsoWebhook;
     console.log("[kapso] webhook recibido", body);
 
-    if (body.event !== "whatsapp.message.received") {
-      console.log("[kapso] evento ignorado", { event: body.event });
-      return Response.json({ ok: true, ignored: true });
-    }
-
     const phone = extractPhone(body);
     const message = extractMessage(body);
+    const phoneNumberId = extractPhoneNumberId(body);
 
-    if (!phone || !message) {
-      console.log("[kapso] payload incompleto", { phone, message, body });
-      return Response.json({ ok: true, ignored: true, reason: "missing phone or message" });
+    if (!message) {
+      console.log("[kapso] payload ignorado: sin mensaje", { phone, body });
+      return Response.json({ ok: true, ignored: true, reason: "missing message" });
     }
 
-    console.log("[kapso] mensaje recibido", { phone, message });
+    if (!phone) {
+      console.log("[kapso] payload ignorado: sin telefono", { message, body });
+      return Response.json({ ok: true, ignored: true, reason: "missing phone" });
+    }
+    if (!phoneNumberId) {
+      console.log("[kapso] payload ignorado: sin phone_number_id", { phone, message, body });
+      return Response.json({ ok: true, ignored: true, reason: "missing phone_number_id" });
+    }
+
+    console.log("[kapso] mensaje recibido", { phone, message, phoneNumberId });
 
     const conversation =
       conversationStore.getByLeadPhone(phone) ||
@@ -81,8 +99,9 @@ export async function POST(req: Request): Promise<Response> {
       content: message,
     });
 
-    const resolvedFromMessage = await resolvePropertyFromMessage(message);
-    const property = (await getPropertyContext(conversation.propertyId)) || resolvedFromMessage;
+    const existingProperty = await getPropertyContext(conversation.propertyId);
+    const resolvedFromMessage = existingProperty ? null : await resolvePropertyFromMessage(message);
+    const property = existingProperty || resolvedFromMessage;
 
     if (property && !conversation.propertyId) {
       conversationStore.update(conversation.id, { propertyId: property.id });
@@ -102,8 +121,13 @@ export async function POST(req: Request): Promise<Response> {
       content: reply.content,
     });
 
-    await sendWhatsAppMessage(phone, reply.content);
-    console.log("[kapso] respuesta enviada", { phone, reply: reply.content });
+    try {
+      await sendWhatsAppMessage(phone, reply.content, phoneNumberId);
+      console.log("[kapso] respuesta enviada", { phone, reply: reply.content });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error("[kapso] error enviando whatsapp", message);
+    }
 
     return Response.json({ ok: true });
   } catch (error) {

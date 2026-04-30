@@ -26,9 +26,9 @@ export async function POST(req: Request): Promise<Response> {
     return Response.json({ error: "conversation not found" }, { status: 404 });
   }
 
-  const resolvedFromMessage = await resolvePropertyFromMessage(body.content);
-  const property =
-    (await getPropertyContext(conversation.propertyId || body.propertyId)) || resolvedFromMessage;
+  const existingProperty = await getPropertyContext(conversation.propertyId || body.propertyId);
+  const resolvedFromMessage = existingProperty ? null : await resolvePropertyFromMessage(body.content);
+  const property = existingProperty || resolvedFromMessage;
 
   if (property && !conversation.propertyId) {
     conversationStore.update(conversation.id, { propertyId: property.id });

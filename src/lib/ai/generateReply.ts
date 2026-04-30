@@ -23,6 +23,12 @@ Precio: USD ${property.priceUsd.toLocaleString("en-US")}. Ambientes: ${property.
 Balcón: ${balcony}. Expensas: ${expenses}. Estado: ${property.status}.`;
 }
 
+function formatStatus(property: Property): string {
+  if (property.status === "available") return "Disponible";
+  if (property.status === "reserved") return "Reservada";
+  return "Vendida";
+}
+
 export async function generateReply(input: {
   conversation: Conversation;
   message: string;
@@ -31,13 +37,12 @@ export async function generateReply(input: {
 }): Promise<ReplyResult> {
   const text = input.message.trim();
   const lower = text.toLowerCase();
-  const hasVisitIntent = containsAny(lower, [
-    "quiero visitar",
-    "coordinar visita",
-    "puedo verla",
-    "visitar",
-    "agendar visita",
-  ]);
+  const hasVisitIntent = containsAny(lower, ["visita", "coordinar", "quiero verla", "puedo verla"]);
+  const wantsPrice = containsAny(lower, ["precio", "valor"]);
+  const wantsSurface = containsAny(lower, ["m2", "metros", "superficie"]);
+  const wantsExpenses = containsAny(lower, ["expensas"]);
+  const wantsBalcony = containsAny(lower, ["balcon", "balcón"]);
+  const wantsAvailability = containsAny(lower, ["disponible", "disponibilidad", "estado"]);
 
   if (!input.property) {
     return {
@@ -53,46 +58,79 @@ export async function generateReply(input: {
     };
   }
 
-  if (input.property.status === "sold" || input.property.status === "reserved") {
+  if ((wantsAvailability || lower.includes("dispon")) && input.property.status !== "available") {
     return {
-      content:
-        `Esta propiedad está ${input.property.status === "sold" ? "vendida" : "reservada"}. ` +
-        "Si querés, te busco opciones similares disponibles.",
+      content: `Actualmente está ${formatStatus(input.property).toLowerCase()}. Si querés, te busco opciones similares disponibles.`,
       status: "bot_active",
     };
   }
 
-  const asksKnownData = containsAny(lower, [
-    "precio",
-    "ambientes",
-    "m2",
-    "metros",
-    "expensas",
-    "balcon",
-    "balcón",
-    "disponible",
-    "disponibilidad",
-    "detalle",
-    "info",
-  ]);
+  if (wantsPrice) {
+    return {
+      content: `El precio es USD ${input.property.priceUsd.toLocaleString("en-US")}.`,
+      status: "bot_active",
+    };
+  }
 
-  if (asksKnownData) {
-    const asksExpenses = containsAny(lower, ["expensas"]);
-    if (asksExpenses && typeof input.property.expensesArs !== "number") {
-      return {
-        content: "Te lo averiguo y te confirmo en unos minutos 👍",
-        status: "needs_human",
-      };
-    }
-    const asksBalcony = containsAny(lower, ["balcon", "balcón"]);
-    if (asksBalcony && typeof input.property.balconyM2 !== "number") {
+  if (wantsSurface) {
+    return {
+      content: `La superficie es de ${input.property.surfaceM2} m2 y tiene ${input.property.rooms} ambientes.`,
+      status: "bot_active",
+    };
+  }
+
+  if (wantsExpenses) {
+    if (typeof input.property.expensesArs !== "number") {
       return {
         content: "Te lo averiguo y te confirmo en unos minutos 👍",
         status: "needs_human",
       };
     }
     return {
-      content: formatProperty(input.property),
+      content: `Las expensas son $${input.property.expensesArs.toLocaleString("es-AR")} ARS.`,
+      status: "bot_active",
+    };
+  }
+
+  if (wantsBalcony) {
+    if (typeof input.property.balconyM2 !== "number") {
+      return {
+        content: "Te lo averiguo y te confirmo en unos minutos 👍",
+        status: "needs_human",
+      };
+    }
+    return {
+      content: `Tiene balcón de ${input.property.balconyM2} m2.`,
+      status: "bot_active",
+    };
+  }
+
+  if (wantsAvailability) {
+    return {
+      content: `Estado de la propiedad: ${formatStatus(input.property)}.`,
+      status: "bot_active",
+    };
+  }
+
+  const fullSummary = formatProperty(input.property);
+  const alreadySentSummary = input.conversation.messages.some(
+    (message) => message.sender === "bot" && message.content === fullSummary,
+  );
+
+  if (!alreadySentSummary) {
+    return {
+      content: fullSummary,
+      status: "bot_active",
+    };
+  }
+
+  const clarifyMessage = "¿Querés saber precio, m2, expensas o coordinar una visita?";
+  const lastBotMessage = [...input.conversation.messages]
+    .reverse()
+    .find((message) => message.sender === "bot");
+  if (lastBotMessage?.content === clarifyMessage) {
+    return {
+      content: "Si querés, también puedo pasarte disponibilidad o ayudarte a coordinar visita.",
       status: "bot_active",
     };
   }
@@ -100,10 +138,8 @@ export async function generateReply(input: {
   const aiEnabled = Boolean(process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY);
   if (!aiEnabled) {
     return {
-      content:
-        `Estoy para ayudarte con esta propiedad: ${formatProperty(input.property)} ` +
-        "Si querés, también puedo contarte precio, m2, ambientes, expensas y disponibilidad.",
-      status: input.matchedByMessage ? "bot_active" : input.conversation.status,
+      content: clarifyMessage,
+      status: "bot_active",
     };
   }
 
