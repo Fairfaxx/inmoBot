@@ -178,6 +178,7 @@ export async function generateReply(input: {
         message: text,
         property: input.property,
         conversationMessages: input.conversation.messages,
+        conversationStatus: input.conversation.status,
       });
       if (openAIText) {
         const openAILower = openAIText.toLowerCase();

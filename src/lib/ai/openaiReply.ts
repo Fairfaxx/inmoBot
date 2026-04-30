@@ -5,12 +5,12 @@ type OpenAIReplyInput = {
   message: string;
   property: Property | null;
   conversationMessages: Message[];
+  conversationStatus: string;
 };
 
-const SYSTEM_PROMPT = `Sos un asistente de WhatsApp para una inmobiliaria argentina.
+const BASE_SYSTEM_PROMPT = `Sos un asistente de WhatsApp para una inmobiliaria argentina.
 Respondés en español argentino, tono natural y profesional.
 Máximo 2 líneas por mensaje.
-Si hay una propiedad asociada, respondés SOLO usando esos datos.
 Nunca inventás datos.
 Si falta un dato, respondés: "Te lo averiguo y te confirmo en unos minutos 👍"
 Si el lead quiere coordinar visita, respondés que lo derivás a un vendedor.
@@ -49,24 +49,40 @@ export async function generateOpenAIReply(input: OpenAIReplyInput): Promise<stri
   console.log("[openai] using model", model);
 
   const client = new OpenAI({ apiKey });
-  const recent = input.conversationMessages.slice(-8).map((m) => ({
-    sender: m.sender,
-    content: m.content,
-  }));
+  const recent = input.conversationMessages
+    .slice(-8)
+    .map((m) => {
+      if (m.sender === "lead") return `LEAD: ${m.content}`;
+      if (m.sender === "bot") return `BOT: ${m.content}`;
+      return `AGENT: ${m.content}`;
+    })
+    .join("\n");
+
+  const propertyIsLocked = Boolean(input.property);
+  const systemPrompt = propertyIsLocked
+    ? `${BASE_SYSTEM_PROMPT}
+Hay una propiedad seleccionada y fija para esta conversación.
+Debés mantener esa propiedad como contexto principal y NO cambiarla por historial textual.
+Si el lead pide datos, respondé solo con los datos de esta propiedad.`
+    : BASE_SYSTEM_PROMPT;
+
+  const structuredContext =
+    `Estado conversación: ${input.conversationStatus}\n` +
+    `Propiedad seleccionada:\n${propertyContext(input.property)}\n` +
+    `Últimos 8 mensajes:\n${recent || "Sin historial"}\n` +
+    `Mensaje actual del lead:\n${input.message}`;
 
   const response = await client.responses.create({
     model,
+    max_output_tokens: 180,
     input: [
       {
         role: "system",
-        content: SYSTEM_PROMPT,
+        content: systemPrompt,
       },
       {
         role: "user",
-        content:
-          `Contexto propiedad:\n${propertyContext(input.property)}\n\n` +
-          `Últimos mensajes:\n${JSON.stringify(recent, null, 2)}\n\n` +
-          `Mensaje actual del lead:\n${input.message}`,
+        content: structuredContext,
       },
     ],
   });
