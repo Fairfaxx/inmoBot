@@ -2,7 +2,7 @@
 
 import { MessageBubble } from "@/components/MessageBubble";
 import type { Conversation, Property } from "@/types";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Props = {
   conversation: Conversation | null;
@@ -19,6 +19,11 @@ export function ConversationDetail({
 }: Props) {
   const [agentText, setAgentText] = useState("");
   const [loading, setLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [conversation?.messages.length]);
 
   if (!conversation) {
     return (
@@ -58,10 +63,32 @@ export function ConversationDetail({
         </div>
       )}
 
-      <div className="space-y-2">
+      {conversation.handoffNeeded && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-amber-800">
+            Resumen para vendedor
+          </p>
+          {conversation.handoffReason && (
+            <p className="mt-1 text-sm font-medium text-amber-900">{conversation.handoffReason}</p>
+          )}
+          {conversation.handoffRequestedAt && (
+            <p className="mt-1 text-xs text-amber-700">
+              Pedido generado: {new Date(conversation.handoffRequestedAt).toLocaleString("es-AR")}
+            </p>
+          )}
+          {conversation.handoffSummary && (
+            <pre className="mt-2 whitespace-pre-wrap text-xs text-amber-900">
+              {conversation.handoffSummary}
+            </pre>
+          )}
+        </div>
+      )}
+
+      <div className="max-h-[52vh] space-y-2 overflow-y-auto pr-1">
         {conversation.messages.map((message) => (
           <MessageBubble key={message.id} message={message} />
         ))}
+        <div ref={messagesEndRef} />
       </div>
 
       {conversation.status === "human_active" && (

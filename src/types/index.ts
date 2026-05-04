@@ -43,6 +43,10 @@ export type Conversation = {
   propertyId?: string;
   status: ConversationStatus;
   assignedAgentId?: string;
+  handoffNeeded?: boolean;
+  handoffReason?: string;
+  handoffSummary?: string;
+  handoffRequestedAt?: string;
   messages: Message[];
   createdAt: string;
   updatedAt: string;

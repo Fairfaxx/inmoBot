@@ -21,7 +21,14 @@ export function ConversationList({ conversations, selectedId, onSelect }: Props)
               : "border-slate-200 bg-white hover:border-slate-300"
           }`}
         >
-          <p className="font-medium">{conversation.leadName}</p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="font-medium">{conversation.leadName}</p>
+            {conversation.handoffNeeded && (
+              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+                Requiere acción
+              </span>
+            )}
+          </div>
           <p className="text-xs text-slate-500">{conversation.leadPhone}</p>
           <p className="mt-1 text-xs uppercase tracking-wide text-slate-600">
             Estado: {conversation.status}

@@ -7,6 +7,7 @@ export async function POST(_: Request, ctx: Params): Promise<Response> {
   const updated = conversationStore.update(id, {
     status: "human_active",
     assignedAgentId: "agent-001",
+    handoffNeeded: false,
   });
   if (!updated) {
     return Response.json({ error: "conversation not found" }, { status: 404 });

@@ -1,6 +1,12 @@
 import { generateReply } from "@/lib/ai/generateReply";
+import { buildHandoffReason, buildHandoffSummary } from "@/lib/conversations/handoff";
 import { conversationStore } from "@/lib/conversations/store";
-import { getPropertyContext, resolvePropertyFromMessage } from "@/lib/properties/property-resolver";
+import {
+  getPropertyContext,
+  resolvePropertyFromConversationSelection,
+  resolvePropertyFromMessage,
+  shouldOverrideCurrentProperty,
+} from "@/lib/properties/property-resolver";
 import type { ChatRequest, ChatResponse } from "@/types";
 
 export async function POST(req: Request): Promise<Response> {
@@ -36,12 +42,24 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   const existingProperty = await getPropertyContext(conversation.propertyId || body.propertyId);
-  const resolution = existingProperty
+  const selectedFromOptions = await resolvePropertyFromConversationSelection(body.content, conversation);
+  if (selectedFromOptions) {
+    if (conversation.propertyId !== selectedFromOptions.id) {
+      conversationStore.update(conversation.id, { propertyId: selectedFromOptions.id });
+    }
+  }
+  const shouldOverride = existingProperty
+    ? await shouldOverrideCurrentProperty(body.content, existingProperty)
+    : false;
+  const shouldResolveFromMessage = !existingProperty || shouldOverride || Boolean(selectedFromOptions);
+  const resolution = !shouldResolveFromMessage
     ? { property: existingProperty, options: [], reason: "exact" as const }
-    : await resolvePropertyFromMessage(body.content);
+    : selectedFromOptions
+      ? { property: selectedFromOptions, options: [], reason: "exact" as const }
+      : await resolvePropertyFromMessage(body.content);
   const property = resolution.property;
 
-  if (property && !conversation.propertyId) {
+  if (property && conversation.propertyId !== property.id) {
     conversationStore.update(conversation.id, { propertyId: property.id });
   }
 
@@ -61,6 +79,20 @@ export async function POST(req: Request): Promise<Response> {
   });
   if (!botMessage) {
     return Response.json({ error: "failed to save bot reply" }, { status: 500 });
+  }
+
+  if (reply.status === "needs_human") {
+    conversationStore.update(conversation.id, {
+      handoffNeeded: true,
+      handoffRequestedAt: new Date().toISOString(),
+      handoffReason: buildHandoffReason(body.content, reply.content),
+      handoffSummary: buildHandoffSummary({
+        conversation: conversationStore.getById(conversation.id)!,
+        property,
+        leadMessage,
+        botReply: reply.content,
+      }),
+    });
   }
 
   const updated = conversationStore.getById(conversation.id)!;

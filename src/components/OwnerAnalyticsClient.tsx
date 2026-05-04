@@ -179,6 +179,7 @@ function PiePeriodChart({ slices, title }: { slices: PieSlice[]; title: string }
   const total = slices.reduce((sum, s) => sum + s.value, 0);
   const radius = 128;
   const center = 154;
+  const nonZeroSlices = slices.filter((slice) => slice.value > 0);
   const arcs = slices.map((slice, index) => {
     const prev = slices.slice(0, index).reduce((sum, item) => sum + item.value, 0);
     const next = prev + slice.value;
@@ -200,9 +201,13 @@ function PiePeriodChart({ slices, title }: { slices: PieSlice[]; title: string }
         <svg viewBox="0 0 308 308" className="h-[300px] w-[300px] justify-self-center">
           {total > 0 ? (
             <>
-              {arcs.map((arc) => (
-                <path key={arc.id} d={arc.path} fill={arc.color} stroke="#fff" strokeWidth="2" />
-              ))}
+              {nonZeroSlices.length === 1 ? (
+                <circle cx={center} cy={center} r={radius} fill={nonZeroSlices[0].color} />
+              ) : (
+                arcs.map((arc) => (
+                  <path key={arc.id} d={arc.path} fill={arc.color} stroke="#fff" strokeWidth="2" />
+                ))
+              )}
               <circle cx={center} cy={center} r="72" fill="white" />
               <text x={center} y={center - 4} textAnchor="middle" className="fill-slate-900 text-[26px] font-bold">
                 {total}

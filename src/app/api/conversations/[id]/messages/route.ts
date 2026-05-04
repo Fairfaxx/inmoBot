@@ -23,7 +23,13 @@ export async function POST(req: Request, ctx: Params): Promise<Response> {
   if (!message) {
     return Response.json({ error: "conversation not found" }, { status: 404 });
   }
-  conversationStore.setStatus(id, "human_active");
+  conversationStore.update(id, {
+    status: "human_active",
+    handoffNeeded: false,
+    handoffReason: undefined,
+    handoffSummary: undefined,
+    handoffRequestedAt: undefined,
+  });
   const updatedConversation = conversationStore.getById(id)!;
 
   if (updatedConversation.leadPhone && updatedConversation.whatsappPhoneNumberId) {

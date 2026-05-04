@@ -1,4 +1,4 @@
-import type { Property } from "@/types";
+import type { Conversation, Property } from "@/types";
 import { propertyProvider } from "./mock-property-provider";
 
 export type PropertyResolution = {
@@ -64,6 +64,44 @@ export async function resolvePropertyFromMessage(message: string): Promise<Prope
   return { property: null, options: [], reason: "none" };
 }
 
+function extractOrdinalSelection(text: string): number | null {
+  const normalized = normalize(text);
+  if (/\b(primero|primera|1|uno|la primera|la 1|opcion 1)\b/.test(normalized)) return 0;
+  if (/\b(segundo|segunda|2|dos|la segunda|la 2|opcion 2)\b/.test(normalized)) return 1;
+  if (/\b(tercero|tercera|3|tres|la tercera|la 3|opcion 3)\b/.test(normalized)) return 2;
+  return null;
+}
+
+function extractCodesFromBotOptions(content: string): string[] {
+  const matches = content.matchAll(/-\s*([A-Z]{3}-\d{3,5})\s*:/g);
+  return [...matches].map((m) => m[1]);
+}
+
+export async function resolvePropertyFromConversationSelection(
+  message: string,
+  conversation: Conversation,
+): Promise<Property | null> {
+  const selectedIndex = extractOrdinalSelection(message);
+  if (selectedIndex === null) return null;
+
+  const lastBotOptionsMessage = [...conversation.messages]
+    .reverse()
+    .find(
+      (m) =>
+        m.sender === "bot" &&
+        m.content.includes("Encontré varias opciones") &&
+        m.content.includes("¿Cuál te interesa?"),
+    );
+  if (!lastBotOptionsMessage) return null;
+
+  const codes = extractCodesFromBotOptions(lastBotOptionsMessage.content);
+  const selectedCode = codes[selectedIndex];
+  if (!selectedCode) return null;
+
+  const all = await propertyProvider.getAll();
+  return all.find((p) => normalize(p.code) === normalize(selectedCode)) ?? null;
+}
+
 export async function getPropertyContext(
   propertyId?: string,
 ): Promise<Property | null> {
@@ -71,4 +109,35 @@ export async function getPropertyContext(
     return null;
   }
   return propertyProvider.getById(propertyId);
+}
+
+export async function shouldOverrideCurrentProperty(
+  message: string,
+  currentProperty: Property,
+): Promise<boolean> {
+  const normalizedMessage = normalize(message);
+  const all = await propertyProvider.getAll();
+
+  const mentionsAnyCode = /\b[A-Z]{3}-\d{3,5}\b/i.test(message);
+  if (mentionsAnyCode) return true;
+
+  const currentNeighborhood = normalize(currentProperty.neighborhood);
+  const mentionedNeighborhoods = all
+    .map((p) => normalize(p.neighborhood))
+    .filter((n, idx, arr) => arr.indexOf(n) === idx)
+    .filter((n) => normalizedMessage.includes(n));
+
+  const mentionsDifferentNeighborhood = mentionedNeighborhoods.some(
+    (n) => n !== currentNeighborhood,
+  );
+  if (mentionsDifferentNeighborhood) return true;
+
+  const explicitSearchIntent = /(busco|me interesa|tienen|tenes|ten[eé]s|quiero ver)/i.test(
+    message,
+  );
+  if (explicitSearchIntent && mentionedNeighborhoods.length > 0) {
+    return true;
+  }
+
+  return false;
 }

@@ -179,6 +179,19 @@ export async function generateReply(input: {
   const text = input.message.trim();
   const lower = text.toLowerCase();
   const hasVisitIntent = containsAny(lower, ["visita", "coordinar", "quiero verla", "puedo verla"]);
+  const isShortAck = containsAny(lower, [
+    "dale",
+    "ok",
+    "oka",
+    "perfecto",
+    "genial",
+    "buenisimo",
+    "buenísimo",
+    "joya",
+    "listo",
+    "gracias",
+  ]);
+  const awaitingHuman = input.conversation.handoffNeeded || input.conversation.status === "needs_human";
 
   if (hasVisitIntent) {
     return {
@@ -208,6 +221,25 @@ export async function generateReply(input: {
     } catch (error) {
       console.error("[openai] error fallback to mock", error);
     }
+  }
+
+  // Si ya está escalado a humano y el lead solo acusa recibo, mantenemos el tono humano
+  // sin reabrir toda la lógica, pero no bloqueamos nuevas preguntas respondibles.
+  if (awaitingHuman && isShortAck) {
+    const followup = "Perfecto, gracias 🙌 Ya se lo pasé al asesor y te responde por acá en breve.";
+    const lastBotMessage = [...input.conversation.messages]
+      .reverse()
+      .find((message) => message.sender === "bot");
+    if (lastBotMessage?.content === followup) {
+      return {
+        content: "Gracias por la paciencia. En breve te responde el asesor con ese dato puntual.",
+        status: "needs_human",
+      };
+    }
+    return {
+      content: followup,
+      status: "needs_human",
+    };
   }
 
   return fallback();

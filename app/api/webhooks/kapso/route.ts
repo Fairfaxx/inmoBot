@@ -1,7 +1,13 @@
 import { generateReply } from "@/lib/ai/generateReply";
+import { buildHandoffReason, buildHandoffSummary } from "@/lib/conversations/handoff";
 import { conversationStore } from "@/lib/conversations/store";
 import { sendWhatsAppMessage } from "@/lib/kapso/sendMessage";
-import { getPropertyContext, resolvePropertyFromMessage } from "@/lib/properties/property-resolver";
+import {
+  getPropertyContext,
+  resolvePropertyFromConversationSelection,
+  resolvePropertyFromMessage,
+  shouldOverrideCurrentProperty,
+} from "@/lib/properties/property-resolver";
 
 type KapsoWebhook = {
   event?: string;
@@ -97,19 +103,34 @@ export async function POST(req: Request): Promise<Response> {
       conversationStore.update(conversation.id, { whatsappPhoneNumberId: phoneNumberId });
     }
 
-    conversationStore.addMessage({
+    const leadMessage = conversationStore.addMessage({
       conversationId: conversation.id,
       sender: "lead",
       content: message,
     });
+    if (!leadMessage) {
+      return Response.json({ ok: true, error: "lead_message_failed" });
+    }
 
     const existingProperty = await getPropertyContext(conversation.propertyId);
-    const resolution = existingProperty
+    const selectedFromOptions = await resolvePropertyFromConversationSelection(message, conversation);
+    if (selectedFromOptions) {
+      if (conversation.propertyId !== selectedFromOptions.id) {
+        conversationStore.update(conversation.id, { propertyId: selectedFromOptions.id });
+      }
+    }
+    const shouldOverride = existingProperty
+      ? await shouldOverrideCurrentProperty(message, existingProperty)
+      : false;
+    const shouldResolveFromMessage = !existingProperty || shouldOverride || Boolean(selectedFromOptions);
+    const resolution = !shouldResolveFromMessage
       ? { property: existingProperty, options: [], reason: "exact" as const }
-      : await resolvePropertyFromMessage(message);
+      : selectedFromOptions
+        ? { property: selectedFromOptions, options: [], reason: "exact" as const }
+        : await resolvePropertyFromMessage(message);
     const property = resolution.property;
 
-    if (property && !conversation.propertyId) {
+    if (property && conversation.propertyId !== property.id) {
       conversationStore.update(conversation.id, { propertyId: property.id });
     }
 
@@ -127,6 +148,20 @@ export async function POST(req: Request): Promise<Response> {
       sender: "bot",
       content: reply.content,
     });
+
+    if (reply.status === "needs_human") {
+      conversationStore.update(conversation.id, {
+        handoffNeeded: true,
+        handoffRequestedAt: new Date().toISOString(),
+        handoffReason: buildHandoffReason(message, reply.content),
+        handoffSummary: buildHandoffSummary({
+          conversation: conversationStore.getById(conversation.id)!,
+          property,
+          leadMessage,
+          botReply: reply.content,
+        }),
+      });
+    }
 
     try {
       await sendWhatsAppMessage(phone, reply.content, phoneNumberId);
