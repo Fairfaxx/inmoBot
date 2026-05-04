@@ -12,7 +12,19 @@ function nowIso(): string {
 }
 
 function normalizePhone(phone: string): string {
-  return phone.replace(/[^\d+]/g, "");
+  const digits = phone.replace(/\D/g, "");
+  if (!digits) return "";
+
+  let normalized = digits;
+  if (normalized.startsWith("549")) {
+    normalized = normalized.slice(3);
+  } else if (normalized.startsWith("54")) {
+    normalized = normalized.slice(2);
+  }
+  if (normalized.length > 10) {
+    normalized = normalized.slice(-10);
+  }
+  return normalized;
 }
 
 export const conversationStore = {
@@ -28,7 +40,12 @@ export const conversationStore = {
 
   getByLeadPhone(phone: string): Conversation | null {
     const target = normalizePhone(phone);
-    return conversations.find((c) => normalizePhone(c.leadPhone) === target) ?? null;
+    if (!target) return null;
+    const matches = conversations.filter((c) => normalizePhone(c.leadPhone) === target);
+    if (matches.length === 0) return null;
+    return matches.sort(
+      (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+    )[0];
   },
 
   create(input: {

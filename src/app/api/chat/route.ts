@@ -9,8 +9,17 @@ export async function POST(req: Request): Promise<Response> {
     return Response.json({ error: "content is required" }, { status: 400 });
   }
 
+  const conversationFromId = body.conversationId
+    ? conversationStore.getById(body.conversationId)
+    : null;
+  const conversationFromPhone =
+    !conversationFromId && body.leadPhone
+      ? conversationStore.getByLeadPhone(body.leadPhone)
+      : null;
+
   const conversation =
-    (body.conversationId && conversationStore.getById(body.conversationId)) ||
+    conversationFromId ||
+    conversationFromPhone ||
     conversationStore.create({
       leadName: body.leadName,
       leadPhone: body.leadPhone,

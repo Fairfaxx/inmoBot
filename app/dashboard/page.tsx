@@ -13,9 +13,14 @@ export default function DashboardPage() {
     <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-slate-900">Dashboard comercial</h1>
-        <Link href="/" className="text-sm font-medium text-blue-700 hover:text-blue-900">
-          Volver a simulador
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link href="/owner" className="text-sm font-medium text-blue-700 hover:text-blue-900">
+            Ver analytics dueño
+          </Link>
+          <Link href="/" className="text-sm font-medium text-blue-700 hover:text-blue-900">
+            Volver a simulador
+          </Link>
+        </div>
       </div>
       <DashboardClient
         initialData={{

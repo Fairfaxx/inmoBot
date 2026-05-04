@@ -40,6 +40,14 @@ export async function generateReply(input: {
   const fallback = async (): Promise<ReplyResult> => {
     const text = input.message.trim();
     const lower = text.toLowerCase();
+    const isGreeting = containsAny(lower, [
+      "hola",
+      "buenas",
+      "como estas",
+      "cómo estás",
+      "que tal",
+      "qué tal",
+    ]);
     const wantsPrice = containsAny(lower, ["precio", "valor"]);
     const wantsSurface = containsAny(lower, ["m2", "metros", "superficie"]);
     const wantsExpenses = containsAny(lower, ["expensas"]);
@@ -47,6 +55,13 @@ export async function generateReply(input: {
     const wantsAvailability = containsAny(lower, ["disponible", "disponibilidad", "estado"]);
 
     if (!input.property) {
+      if (isGreeting) {
+        return {
+          content:
+            "¡Hola! ¿Cómo andás? Todo bien por acá, ¿vos? ¿Estás interesado/a en alguna de las propiedades que tenemos a la venta?",
+          status: "bot_active",
+        };
+      }
       if (input.propertyOptions && input.propertyOptions.length > 0) {
         const options = input.propertyOptions
           .slice(0, 3)
@@ -172,7 +187,7 @@ export async function generateReply(input: {
     };
   }
 
-  if (process.env.OPENAI_API_KEY && input.property) {
+  if (process.env.OPENAI_API_KEY && !(input.propertyOptions && input.propertyOptions.length > 0)) {
     try {
       const openAIText = await generateOpenAIReply({
         message: text,
