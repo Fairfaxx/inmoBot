@@ -1,3 +1,4 @@
+import { generateOpenAISummary } from "@/lib/ai/openaiReply";
 import type { Conversation, Message, Property } from "@/types";
 
 function truncate(value: string, max = 180): string {
@@ -13,7 +14,7 @@ export function buildHandoffReason(message: string, botReply: string): string {
   return "El bot no pudo resolver con datos actuales.";
 }
 
-export function buildHandoffSummary(input: {
+function buildFallbackSummary(input: {
   conversation: Conversation;
   property: Property | null;
   leadMessage: Message;
@@ -36,6 +37,22 @@ export function buildHandoffSummary(input: {
     `Último pedido del lead: ${leadIntent}`,
     `Bot respondió: ${botSaid}`,
     `Contexto reciente lead: ${recentLead.join(" | ") || "n/a"}`,
-    "Acción sugerida: responder el dato puntual y ofrecer siguiente paso (visita o propuesta similar).",
+    "Grado de interés: medio — sin datos suficientes para clasificar automáticamente.",
   ].join("\n");
+}
+
+export async function buildHandoffSummary(input: {
+  conversation: Conversation;
+  property: Property | null;
+  leadMessage: Message;
+  botReply: string;
+}): Promise<string> {
+  const aiSummary = await generateOpenAISummary({
+    property: input.property,
+    conversationMessages: input.conversation.messages,
+    leadMessageContent: input.leadMessage.content,
+    botReply: input.botReply,
+  });
+
+  return aiSummary ?? buildFallbackSummary(input);
 }

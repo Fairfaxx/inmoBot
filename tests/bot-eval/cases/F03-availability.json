@@ -1,0 +1,52 @@
+[
+  {
+    "id": "F03-disponible",
+    "flow": "F03-availability",
+    "description": "Lead pregunta disponibilidad de PAL-3250 (status available).",
+    "propertyCode": "PAL-3250",
+    "userMessage": "sigue disponible?",
+    "assertions": [
+      { "type": "status", "equals": "bot_active" },
+      {
+        "type": "judge",
+        "rubric": "Debe confirmar que está disponible y, idealmente, ofrecer próxima acción (visita o más info).",
+        "mustPass": ["Confirma disponibilidad", "No inventa que está reservada o vendida"]
+      }
+    ]
+  },
+  {
+    "id": "F03-reservada",
+    "flow": "F03-availability",
+    "description": "Lead pregunta por CAB-2100 que está reserved.",
+    "propertyCode": "CAB-2100",
+    "userMessage": "este PH de bonifacio sigue?",
+    "assertions": [
+      {
+        "type": "judge",
+        "rubric": "Debe avisar que está reservada y ofrecer mostrar similares. NO debe dar info como si estuviera disponible.",
+        "mustPass": [
+          "Indica que está reservada",
+          "Ofrece similares o pregunta si quiere ver similares",
+          "No da precio ni datos como si estuviera a la venta normal"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "F03-vendida",
+    "flow": "F03-availability",
+    "description": "Lead pregunta por BEL-1450 que está sold.",
+    "propertyCode": "BEL-1450",
+    "userMessage": "está disponible este monoambiente?",
+    "assertions": [
+      {
+        "type": "judge",
+        "rubric": "Debe avisar que ya se vendió y ofrecer alternativas similares.",
+        "mustPass": [
+          "Comunica que la propiedad ya no está disponible o se vendió",
+          "Ofrece buscar similares"
+        ]
+      }
+    ]
+  }
+]

@@ -30,6 +30,124 @@ function formatStatus(property: Property): string {
   return "Vendida";
 }
 
+function deterministicFallback(input: {
+  conversation: Conversation;
+  message: string;
+  property: Property | null;
+  propertyOptions?: Property[];
+}): ReplyResult {
+  const text = input.message.trim();
+  const lower = text.toLowerCase();
+  const isGreeting = containsAny(lower, [
+    "hola",
+    "buenas",
+    "como estas",
+    "cómo estás",
+    "que tal",
+    "qué tal",
+  ]);
+  const wantsPrice = containsAny(lower, ["precio", "valor"]);
+  const wantsSurface = containsAny(lower, ["m2", "metros", "superficie"]);
+  const wantsExpenses = containsAny(lower, ["expensas"]);
+  const wantsBalcony = containsAny(lower, ["balcon", "balcón"]);
+  const wantsAvailability = containsAny(lower, ["disponible", "disponibilidad", "estado"]);
+
+  if (!input.property) {
+    if (input.propertyOptions && input.propertyOptions.length > 0) {
+      const options = input.propertyOptions
+        .slice(0, 3)
+        .map(
+          (property) =>
+            `- ${property.code}: ${property.title} (${property.address}) - USD ${property.priceUsd.toLocaleString("en-US")}`,
+        )
+        .join("\n");
+      const prefix = isGreeting ? "¡Hola! " : "";
+      return {
+        content: `${prefix}Encontré varias opciones:\n${options}\n¿Cuál te interesa?`,
+        status: "bot_active",
+      };
+    }
+    if (isGreeting) {
+      return {
+        content:
+          "¡Hola! ¿Cómo andás? ¿Estás buscando alguna propiedad en particular? Pasame dirección, código o zona.",
+        status: "bot_active",
+      };
+    }
+    return {
+      content: "¿Me pasás la dirección, link o código de la propiedad que viste?",
+      status: "bot_active",
+    };
+  }
+
+  if ((wantsAvailability || lower.includes("dispon")) && input.property.status !== "available") {
+    return {
+      content: `Actualmente está ${formatStatus(input.property).toLowerCase()}. Si querés, te busco opciones similares disponibles.`,
+      status: "bot_active",
+    };
+  }
+
+  if (wantsPrice) {
+    return {
+      content: `El precio es USD ${input.property.priceUsd.toLocaleString("en-US")}.`,
+      status: "bot_active",
+    };
+  }
+
+  if (wantsSurface) {
+    return {
+      content: `La superficie es de ${input.property.surfaceM2} m2 y tiene ${input.property.rooms} ambientes.`,
+      status: "bot_active",
+    };
+  }
+
+  if (wantsExpenses) {
+    if (typeof input.property.expensesArs !== "number") {
+      return {
+        content: "Te lo averiguo y te confirmo en unos minutos 👍",
+        status: "needs_human",
+      };
+    }
+    return {
+      content: `Las expensas son $${input.property.expensesArs.toLocaleString("es-AR")} ARS.`,
+      status: "bot_active",
+    };
+  }
+
+  if (wantsBalcony) {
+    if (typeof input.property.balconyM2 !== "number") {
+      return {
+        content: "Te lo averiguo y te confirmo en unos minutos 👍",
+        status: "needs_human",
+      };
+    }
+    return {
+      content: `Tiene balcón de ${input.property.balconyM2} m2.`,
+      status: "bot_active",
+    };
+  }
+
+  if (wantsAvailability) {
+    return {
+      content: `Estado de la propiedad: ${formatStatus(input.property)}.`,
+      status: "bot_active",
+    };
+  }
+
+  const fullSummary = formatProperty(input.property);
+  const alreadySentSummary = input.conversation.messages.some(
+    (message) => message.sender === "bot" && message.content === fullSummary,
+  );
+  if (!alreadySentSummary) {
+    return { content: fullSummary, status: "bot_active" };
+  }
+
+  return {
+    content: "¿Querés saber precio, m2, expensas o coordinar una visita?",
+    status: "bot_active",
+  };
+}
+
 export async function generateReply(input: {
   conversation: Conversation;
   message: string;
@@ -37,148 +155,26 @@ export async function generateReply(input: {
   propertyOptions?: Property[];
   matchedByMessage: boolean;
 }): Promise<ReplyResult> {
-  const fallback = async (): Promise<ReplyResult> => {
-    const text = input.message.trim();
-    const lower = text.toLowerCase();
-    const isGreeting = containsAny(lower, [
-      "hola",
-      "buenas",
-      "como estas",
-      "cómo estás",
-      "que tal",
-      "qué tal",
-    ]);
-    const wantsPrice = containsAny(lower, ["precio", "valor"]);
-    const wantsSurface = containsAny(lower, ["m2", "metros", "superficie"]);
-    const wantsExpenses = containsAny(lower, ["expensas"]);
-    const wantsBalcony = containsAny(lower, ["balcon", "balcón"]);
-    const wantsAvailability = containsAny(lower, ["disponible", "disponibilidad", "estado"]);
-
-    if (!input.property) {
-      if (isGreeting) {
-        return {
-          content:
-            "¡Hola! ¿Cómo andás? Todo bien por acá, ¿vos? ¿Estás interesado/a en alguna de las propiedades que tenemos a la venta?",
-          status: "bot_active",
-        };
-      }
-      if (input.propertyOptions && input.propertyOptions.length > 0) {
-        const options = input.propertyOptions
-          .slice(0, 3)
-          .map(
-            (property) =>
-              `- ${property.code}: ${property.title} (${property.address}) - USD ${property.priceUsd.toLocaleString("en-US")}`,
-          )
-          .join("\n");
-        return {
-          content: `Encontré varias opciones:\n${options}\n¿Cuál te interesa?`,
-          status: "bot_active",
-        };
-      }
-      return {
-        content: "¿Me pasás la dirección, link o código de la propiedad que viste?",
-        status: "bot_active",
-      };
-    }
-
-    if ((wantsAvailability || lower.includes("dispon")) && input.property.status !== "available") {
-      return {
-        content: `Actualmente está ${formatStatus(input.property).toLowerCase()}. Si querés, te busco opciones similares disponibles.`,
-        status: "bot_active",
-      };
-    }
-
-    if (wantsPrice) {
-      return {
-        content: `El precio es USD ${input.property.priceUsd.toLocaleString("en-US")}.`,
-        status: "bot_active",
-      };
-    }
-
-    if (wantsSurface) {
-      return {
-        content: `La superficie es de ${input.property.surfaceM2} m2 y tiene ${input.property.rooms} ambientes.`,
-        status: "bot_active",
-      };
-    }
-
-    if (wantsExpenses) {
-      if (typeof input.property.expensesArs !== "number") {
-        return {
-          content: "Te lo averiguo y te confirmo en unos minutos 👍",
-          status: "needs_human",
-        };
-      }
-      return {
-        content: `Las expensas son $${input.property.expensesArs.toLocaleString("es-AR")} ARS.`,
-        status: "bot_active",
-      };
-    }
-
-    if (wantsBalcony) {
-      if (typeof input.property.balconyM2 !== "number") {
-        return {
-          content: "Te lo averiguo y te confirmo en unos minutos 👍",
-          status: "needs_human",
-        };
-      }
-      return {
-        content: `Tiene balcón de ${input.property.balconyM2} m2.`,
-        status: "bot_active",
-      };
-    }
-
-    if (wantsAvailability) {
-      return {
-        content: `Estado de la propiedad: ${formatStatus(input.property)}.`,
-        status: "bot_active",
-      };
-    }
-
-    const fullSummary = formatProperty(input.property);
-    const alreadySentSummary = input.conversation.messages.some(
-      (message) => message.sender === "bot" && message.content === fullSummary,
-    );
-
-    if (!alreadySentSummary) {
-      return {
-        content: fullSummary,
-        status: "bot_active",
-      };
-    }
-
-    const clarifyMessage = "¿Querés saber precio, m2, expensas o coordinar una visita?";
-    const lastBotMessage = [...input.conversation.messages]
-      .reverse()
-      .find((message) => message.sender === "bot");
-    if (lastBotMessage?.content === clarifyMessage) {
-      return {
-        content: "Si querés, también puedo pasarte disponibilidad o ayudarte a coordinar visita.",
-        status: "bot_active",
-      };
-    }
-
-    const aiEnabled = Boolean(process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY);
-    if (!aiEnabled) {
-      return {
-        content: clarifyMessage,
-        status: "bot_active",
-      };
-    }
-
-    const generated = await mockAI({
-      prompt: `Lead: ${text}\nContexto propiedad: ${formatProperty(input.property)}`,
-    });
-
-    return {
-      content: generated,
-      status: "bot_active",
-    };
-  };
-
   const text = input.message.trim();
   const lower = text.toLowerCase();
-  const hasVisitIntent = containsAny(lower, ["visita", "coordinar", "quiero verla", "puedo verla"]);
+  const hasVisitIntent = containsAny(lower, [
+    "visita",
+    "visitar",
+    "coordinar",
+    "quiero verla",
+    "puedo verla",
+    "quiero verlo",
+    "puedo verlo",
+    "conocerlo",
+    "conocerla",
+    "verlo en persona",
+    "verla en persona",
+    "conocer en persona",
+    "conocerlo en persona",
+    "agendar",
+    "ir a verla",
+    "ir a verlo",
+  ]);
   const isShortAck = containsAny(lower, [
     "dale",
     "ok",
@@ -200,31 +196,6 @@ export async function generateReply(input: {
     };
   }
 
-  if (process.env.OPENAI_API_KEY && !(input.propertyOptions && input.propertyOptions.length > 0)) {
-    try {
-      const openAIText = await generateOpenAIReply({
-        message: text,
-        property: input.property,
-        conversationMessages: input.conversation.messages,
-        conversationStatus: input.conversation.status,
-      });
-      if (openAIText) {
-        const openAILower = openAIText.toLowerCase();
-        const status = openAILower.includes("te lo averiguo")
-          ? "needs_human"
-          : "bot_active";
-        return {
-          content: openAIText,
-          status,
-        };
-      }
-    } catch (error) {
-      console.error("[openai] error fallback to mock", error);
-    }
-  }
-
-  // Si ya está escalado a humano y el lead solo acusa recibo, mantenemos el tono humano
-  // sin reabrir toda la lógica, pero no bloqueamos nuevas preguntas respondibles.
   if (awaitingHuman && isShortAck) {
     const followup = "Perfecto, gracias 🙌 Ya se lo pasé al asesor y te responde por acá en breve.";
     const lastBotMessage = [...input.conversation.messages]
@@ -236,11 +207,50 @@ export async function generateReply(input: {
         status: "needs_human",
       };
     }
-    return {
-      content: followup,
-      status: "needs_human",
-    };
+    return { content: followup, status: "needs_human" };
   }
 
-  return fallback();
+  if (process.env.OPENAI_API_KEY) {
+    try {
+      const openAIText = await generateOpenAIReply({
+        message: text,
+        property: input.property,
+        propertyOptions: input.propertyOptions ?? [],
+        conversationMessages: input.conversation.messages,
+        conversationStatus: input.conversation.status,
+        awaitingHuman,
+      });
+      if (openAIText) {
+        const lower = openAIText.toLowerCase();
+        const handoffSignal =
+          lower.includes("te lo averiguo") ||
+          lower.includes("te paso con un asesor") ||
+          lower.includes("te contacto con un asesor") ||
+          lower.includes("paso con un asesor");
+        const status = handoffSignal ? "needs_human" : "bot_active";
+        return { content: openAIText, status };
+      }
+    } catch (error) {
+      console.error("[openai] error fallback to deterministic", error);
+    }
+  }
+
+  const aiEnabled = Boolean(process.env.ANTHROPIC_API_KEY);
+  if (aiEnabled && input.property) {
+    try {
+      const generated = await mockAI({
+        prompt: `Lead: ${text}\nContexto propiedad: ${formatProperty(input.property)}`,
+      });
+      return { content: generated, status: "bot_active" };
+    } catch (error) {
+      console.error("[mockAI] error", error);
+    }
+  }
+
+  return deterministicFallback({
+    conversation: input.conversation,
+    message: input.message,
+    property: input.property,
+    propertyOptions: input.propertyOptions,
+  });
 }

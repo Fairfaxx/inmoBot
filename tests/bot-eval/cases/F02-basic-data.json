@@ -1,0 +1,47 @@
+[
+  {
+    "id": "F02-precio",
+    "flow": "F02-basic-data",
+    "description": "Lead pregunta el precio de una propiedad asociada (PAL-3250 = USD 185.000).",
+    "propertyCode": "PAL-3250",
+    "userMessage": "cuánto sale?",
+    "assertions": [
+      { "type": "status", "equals": "bot_active" },
+      { "type": "containsAny", "texts": ["185000", "185.000", "185,000"] },
+      { "type": "containsAny", "texts": ["USD", "U$D", "u$s", "dólares"] }
+    ]
+  },
+  {
+    "id": "F02-superficie",
+    "flow": "F02-basic-data",
+    "description": "Lead pregunta superficie de PAL-3250 (78 m2, 3 ambientes).",
+    "propertyCode": "PAL-3250",
+    "userMessage": "cuántos m2 tiene?",
+    "assertions": [
+      { "type": "status", "equals": "bot_active" },
+      { "type": "contains", "text": "78" }
+    ]
+  },
+  {
+    "id": "F02-expensas",
+    "flow": "F02-basic-data",
+    "description": "Lead pregunta expensas de PAL-3250 (145000 ARS).",
+    "propertyCode": "PAL-3250",
+    "userMessage": "y las expensas cuánto son?",
+    "assertions": [
+      { "type": "status", "equals": "bot_active" },
+      { "type": "containsAny", "texts": ["145000", "145.000", "145,000"] }
+    ]
+  },
+  {
+    "id": "F02-balcon-faltante",
+    "flow": "F02-basic-data",
+    "description": "Lead pregunta tamaño de balcón en PAL-4600 (no tiene balconyM2 cargado en la ficha).",
+    "propertyCode": "PAL-4600",
+    "userMessage": "tiene balcón? qué tamaño tiene?",
+    "assertions": [
+      { "type": "status", "equals": "needs_human" },
+      { "type": "contains", "text": "averiguo" }
+    ]
+  }
+]

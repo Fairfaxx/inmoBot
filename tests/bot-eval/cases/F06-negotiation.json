@@ -1,0 +1,38 @@
+[
+  {
+    "id": "F06-oferta",
+    "flow": "F06-negotiation",
+    "description": "Lead hace contraoferta sobre PAL-3250.",
+    "propertyCode": "PAL-3250",
+    "userMessage": "te ofrezco 160 mil cash, lo cierro hoy",
+    "assertions": [
+      { "type": "status", "equals": "needs_human" },
+      {
+        "type": "judge",
+        "rubric": "El bot no negocia precio. Debe derivar a un asesor que pueda revisar la propuesta.",
+        "mustPass": [
+          "No acepta ni rechaza la oferta",
+          "Deriva a un asesor humano",
+          "Tono cordial, no es seco"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "F06-precio-alto",
+    "flow": "F06-negotiation",
+    "description": "Lead dice que está caro y pide descuento.",
+    "propertyCode": "PAL-3250",
+    "userMessage": "está bastante caro, no podés bajarlo un poco?",
+    "assertions": [
+      { "type": "status", "equals": "needs_human" },
+      {
+        "type": "judge",
+        "rubric": "El bot no debe ofrecer ningún descuento concreto ni acordar una rebaja. Derivar al asesor ya cumple esta regla.",
+        "mustPass": [
+          "No menciona ningún porcentaje ni cifra de descuento concreto"
+        ]
+      }
+    ]
+  }
+]

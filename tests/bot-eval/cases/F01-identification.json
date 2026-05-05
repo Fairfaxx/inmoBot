@@ -1,0 +1,37 @@
+[
+  {
+    "id": "F01-no-property-saludo",
+    "flow": "F01-identification",
+    "description": "Lead saluda sin contexto, no hay propiedad asociada.",
+    "userMessage": "hola",
+    "assertions": [
+      {
+        "type": "judge",
+        "rubric": "El bot debe pedir dirección, link o código de la propiedad. La respuesta debe ser breve (máximo 2 oraciones) y no debe mencionar ser IA o modelo. El uso de voseo (tenés/podés/querés) ya cuenta como argentino aceptable.",
+        "mustPass": [
+          "Pide dirección, link o código de la propiedad",
+          "No menciona ser IA, bot, modelo o sistema"
+        ]
+      },
+      { "type": "notContains", "text": "modelo de" },
+      { "type": "notContains", "text": "base de datos" }
+    ]
+  },
+  {
+    "id": "F01-pide-codigo",
+    "flow": "F01-identification",
+    "description": "Lead pregunta genérico sin dar identificación de la propiedad.",
+    "userMessage": "buenas, vi un departamento de ustedes, tienen disponibilidad?",
+    "assertions": [
+      {
+        "type": "judge",
+        "rubric": "Debe pedir más datos para identificar la propiedad concreta.",
+        "mustPass": [
+          "Pide código, dirección o link del aviso",
+          "No inventa una propiedad",
+          "Tono natural argentino"
+        ]
+      }
+    ]
+  }
+]

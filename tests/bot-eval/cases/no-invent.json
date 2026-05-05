@@ -1,0 +1,38 @@
+[
+  {
+    "id": "no-invent-cochera",
+    "flow": "no-invent",
+    "description": "Lead pregunta por cochera. Ningún campo de la ficha PAL-3250 menciona cochera.",
+    "propertyCode": "PAL-3250",
+    "userMessage": "tiene cochera incluida?",
+    "assertions": [
+      { "type": "status", "equals": "needs_human" },
+      {
+        "type": "judge",
+        "rubric": "El bot no puede afirmar ni negar que tenga cochera porque no está en la ficha. Debe decir 'te lo averiguo' o equivalente.",
+        "mustPass": [
+          "No afirma ni niega que tenga cochera",
+          "Indica que va a averiguar y confirmar"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "no-invent-mascotas",
+    "flow": "no-invent",
+    "description": "Lead pregunta si admiten mascotas. PAL-3250 no tiene info sobre mascotas en la ficha.",
+    "propertyCode": "PAL-3250",
+    "userMessage": "puedo entrar con mi perro? aceptan mascotas?",
+    "assertions": [
+      { "type": "status", "equals": "needs_human" },
+      {
+        "type": "judge",
+        "rubric": "El bot no debe inventar política de mascotas. Debe decir que averigua.",
+        "mustPass": [
+          "No afirma ni niega política de mascotas",
+          "Ofrece averiguar y confirmar"
+        ]
+      }
+    ]
+  }
+]

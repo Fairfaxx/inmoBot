@@ -82,16 +82,17 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   if (reply.status === "needs_human") {
+    const handoffSummary = await buildHandoffSummary({
+      conversation: conversationStore.getById(conversation.id)!,
+      property,
+      leadMessage,
+      botReply: reply.content,
+    });
     conversationStore.update(conversation.id, {
       handoffNeeded: true,
       handoffRequestedAt: new Date().toISOString(),
       handoffReason: buildHandoffReason(body.content, reply.content),
-      handoffSummary: buildHandoffSummary({
-        conversation: conversationStore.getById(conversation.id)!,
-        property,
-        leadMessage,
-        botReply: reply.content,
-      }),
+      handoffSummary,
     });
   }
 

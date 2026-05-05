@@ -1,0 +1,24 @@
+[
+  {
+    "id": "F05-uso-vivir",
+    "flow": "F05-qualification",
+    "description": "Lead da contexto sobre su intención.",
+    "propertyCode": "PAL-3250",
+    "history": [
+      { "sender": "lead", "content": "el dpto de santa fe sigue?" },
+      { "sender": "bot", "content": "Sí, sigue disponible. ¿Querés que te pase los detalles?" }
+    ],
+    "userMessage": "es para vivir con mi pareja, nos mudamos en marzo",
+    "assertions": [
+      {
+        "type": "judge",
+        "rubric": "El bot acusa recibo, eventualmente puede hacer una pregunta de calificación adicional, sin interrogar.",
+        "mustPass": [
+          "Responde de forma natural reconociendo la intención",
+          "No hace más de una pregunta nueva en el mismo mensaje",
+          "No pide datos personales sensibles (DNI, ingresos)"
+        ]
+      }
+    ]
+  }
+]

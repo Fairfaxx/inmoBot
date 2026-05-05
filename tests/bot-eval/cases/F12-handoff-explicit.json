@@ -1,0 +1,45 @@
+[
+  {
+    "id": "F12-pide-humano",
+    "flow": "F12-handoff-explicit",
+    "description": "Lead pide hablar con una persona.",
+    "propertyCode": "PAL-3250",
+    "userMessage": "quiero hablar con una persona, no con un bot",
+    "assertions": [
+      { "type": "status", "equals": "needs_human" },
+      {
+        "type": "judge",
+        "rubric": "Debe derivar a un asesor sin discutir, sin defenderse.",
+        "mustPass": [
+          "Deriva a un asesor",
+          "No se defiende ni dice 'soy un asistente útil'",
+          "Tono cordial y breve"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "F12-frustracion",
+    "flow": "F12-handoff-explicit",
+    "description": "Lead frustrado.",
+    "propertyCode": "PAL-3250",
+    "history": [
+      { "sender": "lead", "content": "cuanto sale" },
+      { "sender": "bot", "content": "USD 185.000." },
+      { "sender": "lead", "content": "y de cochera?" },
+      { "sender": "bot", "content": "Te lo averiguo y te confirmo en unos minutos 👍" }
+    ],
+    "userMessage": "esto es una pérdida de tiempo, no me sirve",
+    "assertions": [
+      { "type": "status", "equals": "needs_human" },
+      {
+        "type": "judge",
+        "rubric": "Debe ofrecer pasarlo con un asesor, sin escalar el tono.",
+        "mustPass": [
+          "No discute con el lead",
+          "Ofrece pasarlo con un asesor humano"
+        ]
+      }
+    ]
+  }
+]
