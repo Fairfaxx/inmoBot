@@ -1,0 +1,19 @@
+[
+  {
+    "id": "F08-criterios-busqueda",
+    "flow": "F08-search",
+    "description": "Lead da criterios de búsqueda sin propiedad asociada.",
+    "userMessage": "busco 2 ambientes en Palermo hasta USD 150.000",
+    "assertions": [
+      {
+        "type": "judge",
+        "rubric": "El lead dio criterios de búsqueda concretos. El bot debe acusar recibo de los criterios y derivar a un asesor que arme una preselección, o preguntar criterios adicionales. NO debe responder solo pidiendo dirección/código (ya recibió criterios).",
+        "mustPass": [
+          "Acusa recibo de los criterios o pregunta criterios adicionales",
+          "No inventa propiedades específicas",
+          "Menciona derivar a un asesor o ayudar a buscar"
+        ]
+      }
+    ]
+  }
+]

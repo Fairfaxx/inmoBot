@@ -86,12 +86,7 @@ export async function resolvePropertyFromConversationSelection(
 
   const lastBotOptionsMessage = [...conversation.messages]
     .reverse()
-    .find(
-      (m) =>
-        m.sender === "bot" &&
-        m.content.includes("Encontré varias opciones") &&
-        m.content.includes("¿Cuál te interesa?"),
-    );
+    .find((m) => m.sender === "bot" && extractCodesFromBotOptions(m.content).length >= 2);
   if (!lastBotOptionsMessage) return null;
 
   const codes = extractCodesFromBotOptions(lastBotOptionsMessage.content);

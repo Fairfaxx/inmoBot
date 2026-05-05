@@ -1,0 +1,36 @@
+[
+  {
+    "id": "F04-pedir-visita",
+    "flow": "F04-visit",
+    "description": "Lead quiere coordinar visita a PAL-3250.",
+    "propertyCode": "PAL-3250",
+    "userMessage": "puedo ir a verlo el sábado?",
+    "assertions": [
+      { "type": "status", "equals": "needs_human" },
+      {
+        "type": "judge",
+        "rubric": "Debe avisar que un asesor lo va a contactar para coordinar la visita. No debe agendar por sí mismo.",
+        "mustPass": [
+          "Indica que un asesor coordinará la visita",
+          "No agenda fecha ni hora por sí mismo",
+          "Tono cordial y breve"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "F04-coordinar",
+    "flow": "F04-visit",
+    "description": "Lead pide coordinar sin dar fecha.",
+    "propertyCode": "PAL-4600",
+    "userMessage": "me gustaría conocerlo en persona",
+    "assertions": [
+      { "type": "status", "equals": "needs_human" },
+      {
+        "type": "judge",
+        "rubric": "Debe derivar a un asesor para coordinar.",
+        "mustPass": ["Deriva a un asesor humano"]
+      }
+    ]
+  }
+]

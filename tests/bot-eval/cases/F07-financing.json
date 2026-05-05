@@ -1,0 +1,36 @@
+[
+  {
+    "id": "F07-credito-hipotecario",
+    "flow": "F07-financing",
+    "description": "Lead pregunta sobre crédito hipotecario.",
+    "propertyCode": "PAL-3250",
+    "userMessage": "se puede comprar con crédito hipotecario? cuáles bancos lo dan?",
+    "assertions": [
+      { "type": "status", "equals": "needs_human" },
+      {
+        "type": "judge",
+        "rubric": "El bot no asesora créditos hipotecarios. Debe derivar a un asesor.",
+        "mustPass": [
+          "No menciona bancos específicos ni tasas",
+          "No da consejos sobre cómo conseguir crédito",
+          "Deriva a asesor"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "F07-cuotas",
+    "flow": "F07-financing",
+    "description": "Lead pregunta por cuotas.",
+    "propertyCode": "PAL-4600",
+    "userMessage": "lo puedo pagar en cuotas? aceptan financiación?",
+    "assertions": [
+      { "type": "status", "equals": "needs_human" },
+      {
+        "type": "judge",
+        "rubric": "Deriva a asesor.",
+        "mustPass": ["Deriva a asesor para hablar de financiación"]
+      }
+    ]
+  }
+]

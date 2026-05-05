@@ -1,0 +1,57 @@
+[
+  {
+    "id": "human-tone-no-bot-disclaimer",
+    "flow": "human-tone",
+    "description": "Lead pregunta directo, debe responder humano sin frases de IA.",
+    "propertyCode": "PAL-3250",
+    "userMessage": "qué onda esta propiedad?",
+    "assertions": [
+      { "type": "notContains", "text": "como modelo" },
+      { "type": "notContains", "text": "soy una ia" },
+      { "type": "notContains", "text": "soy un bot" },
+      { "type": "notContains", "text": "según mi" },
+      {
+        "type": "judge",
+        "rubric": "La respuesta debe ser breve (no un bloque grande con todos los datos de la ficha). Hasta 3 oraciones cortas está bien. Lo importante es que NO sea un brochure ni una lista. Frases típicas de IA NO permitidas.",
+        "mustPass": [
+          "Tiene como máximo 3 oraciones cortas",
+          "No tiene bullets ni numeraciones ni dobles saltos de línea",
+          "No incluye frases tipo 'como modelo', 'según mi base', 'no tengo info en mi sistema'"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "human-tone-saludo-no-exagerado",
+    "flow": "human-tone",
+    "description": "El bot no debería arrancar con saludos exagerados ni emojis múltiples.",
+    "userMessage": "buenas tardes",
+    "assertions": [
+      { "type": "notContains", "text": "🎉" },
+      { "type": "notContains", "text": "!!" },
+      { "type": "notContains", "text": "¡¡" },
+      { "type": "notContains", "text": "bienvenid" }
+    ]
+  },
+  {
+    "id": "human-tone-no-repetir-info",
+    "flow": "human-tone",
+    "description": "El bot ya dio el precio en un mensaje anterior. No debería volver a darlo si el lead pregunta otra cosa.",
+    "propertyCode": "PAL-3250",
+    "history": [
+      { "sender": "lead", "content": "cuánto sale?" },
+      { "sender": "bot", "content": "USD 185.000." }
+    ],
+    "userMessage": "y los m2?",
+    "assertions": [
+      { "type": "contains", "text": "78" },
+      {
+        "type": "judge",
+        "rubric": "Debe responder los m2. NO debe contener el número 185 (que es el precio que ya se dio). Cualquier mención de '185' o '185.000' en la respuesta es FALLO automático.",
+        "mustPass": [
+          "La respuesta NO contiene la cifra 185 ni 185.000"
+        ]
+      }
+    ]
+  }
+]
